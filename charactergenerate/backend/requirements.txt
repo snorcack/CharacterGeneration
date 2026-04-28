@@ -1,6 +1,8 @@
 fastapi
 uvicorn[standard]
 ollama
+python-multipart
+ebooklib
 langchain-community
 langchain-text-splitters
 langchain-chroma
