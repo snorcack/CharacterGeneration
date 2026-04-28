@@ -12,18 +12,22 @@ import json
 import urllib.request
 import urllib.parse
 
-from ollama import Client
+from dotenv import load_dotenv
+from openai import OpenAI
 from langchain_community.document_loaders import TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 
-OLLAMA_MODEL = "Gemma4E4B:latest"
-OLLAMA_HOST = "http://localhost:11434"
+load_dotenv()
+
+LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://localhost:11434/v1")
+LLM_API_KEY  = os.getenv("LLM_API_KEY",  "ollama")
+LLM_MODEL    = os.getenv("LLM_MODEL",    "Gemma4E4B:latest")
 
 
-def get_ollama_client() -> Client:
-    return Client(host=OLLAMA_HOST)
+def get_llm_client() -> OpenAI:
+    return OpenAI(base_url=LLM_BASE_URL, api_key=LLM_API_KEY)
 
 
 # ---------------------------------------------------------------------------
@@ -61,15 +65,18 @@ def get_major_character_names(book_title: str) -> list[str]:
         if not content:
             return []
 
-        client = get_ollama_client()
+        client = get_llm_client()
         prompt = (
             f"Extract a comma-separated list of major character names from the following "
             f"Wikipedia article about the book '{book_title}'. "
             f"Return ONLY the comma-separated list of names, no other text.\n\n"
             f"Article text:\n{content[:15000]}"
         )
-        response = client.generate(model=OLLAMA_MODEL, prompt=prompt)
-        text_response = response["response"]
+        response = client.chat.completions.create(
+            model=LLM_MODEL,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        text_response = response.choices[0].message.content
         major_characters = [n.strip() for n in text_response.split(",") if n.strip()]
         return major_characters
 
@@ -145,7 +152,7 @@ def get_scenario_summaries(vectorstore, character_name: str) -> list[dict]:
     Returns: [{"label": str, "context": str}, ...]
     """
     situations = get_character_situations(vectorstore, character_name, k=6)
-    client = get_ollama_client()
+    client = get_llm_client()
     summaries = []
     for ctx in situations:
         prompt = (
@@ -153,8 +160,11 @@ def get_scenario_summaries(vectorstore, character_name: str) -> list[dict]:
             f"involving {character_name}. Return ONLY the sentence, nothing else.\n\n"
             f"Scene:\n{ctx[:2000]}"
         )
-        resp = client.generate(model=OLLAMA_MODEL, prompt=prompt)
-        label = resp["response"].strip().strip('"').strip("'")
+        resp = client.chat.completions.create(
+            model=LLM_MODEL,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        label = resp.choices[0].message.content.strip().strip('"').strip("'")
         summaries.append({"label": label, "context": ctx})
     return summaries
 
@@ -165,7 +175,7 @@ def get_scenario_summaries(vectorstore, character_name: str) -> list[dict]:
 
 def analyze_character(book_text: str, character_name: str) -> str:
     """Extract a structured character description from a book excerpt."""
-    client = get_ollama_client()
+    client = get_llm_client()
     prompt = f"""Analyze the character '{character_name}' from the book. Extract and describe:
 - Physical appearance (hair colour, eye colour, height, build, approximate age)
 - Clothing and accessories typically worn
@@ -174,8 +184,11 @@ def analyze_character(book_text: str, character_name: str) -> str:
 
 Book excerpt:
 {book_text[:5000]}"""
-    response = client.generate(model=OLLAMA_MODEL, prompt=prompt)
-    return response["response"]
+    response = client.chat.completions.create(
+        model=LLM_MODEL,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content
 
 
 # ---------------------------------------------------------------------------
@@ -190,7 +203,7 @@ def cast_character_with_actor(
     decade: str = "2026"
 ) -> str:
     """Suggest a real-world actor from the given industry and decade to portray the character in a specific genre."""
-    client = get_ollama_client()
+    client = get_llm_client()
     genre_context = f"This is for a {genre} adaptation." if genre else ""
     decade_context = f"The production is set in/filmed during the {decade}s." if decade and decade != "2026" else "The production is modern (2026)."
 
@@ -204,8 +217,11 @@ Cast an age-appropriate real-world actor from the {industry} industry to play th
 If the decade is in the past, pick an actor who was active and the correct age DURING that decade.
 If the decade is modern, pick a currently active actor.
 Return ONLY the name of the actor, nothing else."""
-    response = client.generate(model=OLLAMA_MODEL, prompt=prompt)
-    return response["response"].strip()
+    response = client.chat.completions.create(
+        model=LLM_MODEL,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content.strip()
 
 
 # ---------------------------------------------------------------------------
@@ -227,7 +243,7 @@ def generate_prompt_for_scenario(
     Build a Z-Image-Turbo / Stable Diffusion prompt for one character scene.
     Uses the (possibly user-edited) description and actor name.
     """
-    client = get_ollama_client()
+    client = get_llm_client()
 
     # Create override block
     overrides = []
@@ -244,8 +260,11 @@ def generate_prompt_for_scenario(
         f"IMPORTANT: The clothing and hair must reflect the {genre} genre, but the facial features, age, and ethnicity must remain consistent with a realistic human portrayal of the character.\n\n"
         f"Scene: {scenario_context}"
     )
-    scene_resp = client.generate(model=OLLAMA_MODEL, prompt=extract_prompt)
-    scene_details = scene_resp["response"]
+    scene_resp = client.chat.completions.create(
+        model=LLM_MODEL,
+        messages=[{"role": "user", "content": extract_prompt}]
+    )
+    scene_details = scene_resp.choices[0].message.content
 
     actor_instruction = (
         f"The character's face should closely resemble the actor: {actor_name}."
@@ -280,5 +299,8 @@ Rules:
 
 Return ONLY the image prompt text, nothing else."""
 
-    response = client.generate(model=OLLAMA_MODEL, prompt=prompt_template)
-    return response["response"]
+    response = client.chat.completions.create(
+        model=LLM_MODEL,
+        messages=[{"role": "user", "content": prompt_template}]
+    )
+    return response.choices[0].message.content
