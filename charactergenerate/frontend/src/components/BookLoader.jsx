@@ -97,7 +97,7 @@ export default function BookLoader({ status, setStatus, progress, setProgress, o
               const f = e.target.files[0]
               if (!f) return
               setFile(f)
-              if (!bookName) setBookName(f.name.replace(/\.[^.]+$/, ''))
+              setBookName(f.name.replace(/\.[^.]+$/, ''))
             }}
             disabled={isLoading}
           />
