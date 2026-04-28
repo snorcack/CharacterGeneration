@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+
+# Environment / secrets
+.env
+*.env.local
+
+# Vector DB
+charactergenerate/backend/chroma_db_*/
+
+# Node
+node_modules/
+
+# Vite build cache
+charactergenerate/frontend/.vite/
+charactergenerate/frontend/dist/
+
+# Local scripts
+start.bat
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.user
