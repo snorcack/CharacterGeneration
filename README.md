@@ -48,11 +48,10 @@ cd CharacterGeneration/charactergenerate
     open command prompt  
     ollama pull Gemma4E4B:latest
     ```
-2.  **ComfyUI**: Have a local [ComfyUI](https://github.com/comfyanonymous/ComfyUI) instance running.
-3.  **Python & Node**: Ensure you have Python 3.10+ and Node.js installed.
-``
+1.  **ComfyUI**: Have a local [ComfyUI](https://github.com/comfyanonymous/ComfyUI) instance running.
+2.  **Python & Node**: Ensure you have Python 3.10+ and Node.js installed.
+3.  **https://github.com/martin-rizzo/ComfyUI-ZImagePowerNodes**  === needs to be installed in ComfyUI/custom_nodes    ```
 
-    ```
 
 ### Running the App
 
