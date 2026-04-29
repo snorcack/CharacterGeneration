@@ -13,15 +13,19 @@ Endpoints:
   GET  /api/comfyui/image/{prompt_id} proxy-fetch the finished image
 """
 import os
+import re
 import asyncio
 import threading
 import json
+import tempfile
 from typing import Any, Optional
 import urllib.request
 import urllib.parse
 import urllib.error
 
-from fastapi import FastAPI, HTTPException
+import ebooklib
+from ebooklib import epub
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, Response
 from pydantic import BaseModel
@@ -172,6 +176,8 @@ async def load_book(req: LoadBookRequest):
     if state["job_status"] == "running":
         raise HTTPException(status_code=409, detail="A book is already being loaded.")
 
+    req.book_path = req.book_path.strip().strip("\"'")
+
     if not os.path.exists(req.book_path):
         # Fallback: try relative to two levels up (project root often has data/ folder)
         alt_path = os.path.join("..", "..", req.book_path)
@@ -188,6 +194,44 @@ async def load_book(req: LoadBookRequest):
         args=(req.book_path, req.book_name),
         daemon=True,
     )
+    t.start()
+    return {"status": "started"}
+
+
+def _epub_to_txt(epub_path: str, out_path: str) -> None:
+    book = epub.read_epub(epub_path)
+    parts = []
+    for item in book.get_items_of_type(ebooklib.ITEM_DOCUMENT):
+        content = item.get_content().decode("utf-8", errors="ignore")
+        text = re.sub(r"<[^>]+>", " ", content)
+        text = re.sub(r"\s+", " ", text).strip()
+        if text:
+            parts.append(text)
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write("\n\n".join(parts))
+
+
+@app.post("/api/upload-book")
+async def upload_book(file: UploadFile = File(...), book_name: str = Form(...)):
+    if state["job_status"] == "running":
+        raise HTTPException(status_code=409, detail="A book is already being loaded.")
+
+    filename = (file.filename or "").lower()
+    if not (filename.endswith(".txt") or filename.endswith(".epub")):
+        raise HTTPException(status_code=400, detail="Only .txt and .epub files are supported.")
+
+    suffix = ".epub" if filename.endswith(".epub") else ".txt"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp.write(await file.read())
+        tmp_path = tmp.name
+
+    if suffix == ".epub":
+        txt_path = tmp_path.replace(".epub", ".txt")
+        _epub_to_txt(tmp_path, txt_path)
+        os.unlink(tmp_path)
+        tmp_path = txt_path
+
+    t = threading.Thread(target=load_book_task, args=(tmp_path, book_name), daemon=True)
     t.start()
     return {"status": "started"}
 
