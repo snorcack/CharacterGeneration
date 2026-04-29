@@ -18,7 +18,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 
-OLLAMA_MODEL = "Gemma4E4B:latest"
+OLLAMA_MODEL = "Gemma4E4B"
 OLLAMA_HOST = "http://localhost:11434"
 
 
