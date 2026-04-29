@@ -2,6 +2,9 @@ fastapi
 uvicorn[standard]
 openai
 python-dotenv
+ollama
+python-multipart
+ebooklib
 langchain-community
 langchain-text-splitters
 langchain-chroma

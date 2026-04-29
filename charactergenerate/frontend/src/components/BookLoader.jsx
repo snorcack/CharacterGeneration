@@ -7,7 +7,7 @@ import { Loader } from './Loader'
  * and streams live progress via SSE.
  */
 export default function BookLoader({ status, setStatus, progress, setProgress, onLoaded }) {
-  const [bookPath, setBookPath] = useState('')
+  const [file, setFile] = useState(null)
   const [bookName, setBookName] = useState('')
   const esRef = useRef(null)
 
@@ -15,18 +15,17 @@ export default function BookLoader({ status, setStatus, progress, setProgress, o
   useEffect(() => () => esRef.current?.close(), [])
 
   const handleLoad = async () => {
-    if (!bookPath.trim() || !bookName.trim()) return
+    if (!file || !bookName.trim()) return
 
     setStatus('loading')
     setProgress({ stage: '', progress: 0, total: 0, message: 'Starting…' })
 
     // Start the background job
     try {
-      const res = await fetch('/api/load-book', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ book_path: bookPath.trim(), book_name: bookName.trim() }),
-      })
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('book_name', bookName.trim())
+      const res = await fetch('/api/upload-book', { method: 'POST', body: fd })
       if (!res.ok) {
         const data = await res.json()
         setProgress(prev => ({ ...prev, message: data.detail || 'Failed to start indexing' }))
@@ -82,20 +81,24 @@ export default function BookLoader({ status, setStatus, progress, setProgress, o
         <span className="section-number">01</span>
         <div>
           <h2>Load Book</h2>
-          <p className="section-subtitle">Provide the book file path and name to begin indexing</p>
+          <p className="section-subtitle">Upload a .txt or .epub file to begin indexing</p>
         </div>
       </div>
 
       <div className="form-row">
         <div className="form-group">
-          <label htmlFor="book-path">Book File Path</label>
+          <label htmlFor="book-file">Book File (.txt or .epub)</label>
           <input
-            id="book-path"
-            type="text"
+            id="book-file"
+            type="file"
             className="input"
-            placeholder="e.g. data/EyeOfTheWorld/eyeoftheworld.txt"
-            value={bookPath}
-            onChange={(e) => setBookPath(e.target.value)}
+            accept=".txt,.epub"
+            onChange={(e) => {
+              const f = e.target.files[0]
+              if (!f) return
+              setFile(f)
+              setBookName(f.name.replace(/\.[^.]+$/, ''))
+            }}
             disabled={isLoading}
           />
         </div>
@@ -118,7 +121,7 @@ export default function BookLoader({ status, setStatus, progress, setProgress, o
         id="load-book-btn"
         className="btn btn-primary"
         onClick={handleLoad}
-        disabled={!bookPath.trim() || !bookName.trim() || isLoading}
+        disabled={!file || !bookName.trim() || isLoading}
       >
         {isLoading ? (
           <><Loader small /> Loading Book…</>
@@ -147,7 +150,7 @@ export default function BookLoader({ status, setStatus, progress, setProgress, o
 
       {isError && (
         <div className="error-badge">
-          ✗ {progress.message || 'Error loading book. Check the file path is correct and try again.'}
+          ✗ {progress.message || 'Error loading book. Check the file and try again.'}
         </div>
       )}
     </section>
