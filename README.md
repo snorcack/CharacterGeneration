@@ -27,34 +27,31 @@ A powerful, AI-driven pipeline for generating cinematic character portraits dire
 
 ## 🚀 Getting Started
 
+Create and activate a conda or venv environment
+conda create -n charactergen python=3.12 
+activate charactergen 
+        or 
+python -m venv venv
+.\venv\Scripts\activate
+
+git clone https://github.com/snorcack/CharacterGeneration
+cd CharacterGeneration/charactergenerate/frontend
+npm install
+cd CharacterGeneration/charactergenerate/backend
+pip install -r requirements.txt
+cd CharacterGeneration/charactergenerate
+
 ### Prerequisites
 
 1.  **Ollama**: Install [Ollama](https://ollama.com/) and pull the required model:
     ```bash
+    open command prompt  
     ollama pull Gemma4E4B:latest
     ```
-2.  **ComfyUI**: Have a local [ComfyUI](https://github.com/comfyanonymous/ComfyUI) instance running.
-3.  **Python & Node**: Ensure you have Python 3.10+ and Node.js installed.
+1.  **ComfyUI**: Have a local [ComfyUI](https://github.com/comfyanonymous/ComfyUI) instance running.
+2.  **Python & Node**: Ensure you have Python 3.10+ and Node.js installed.
+3.  **https://github.com/martin-rizzo/ComfyUI-ZImagePowerNodes**  === needs to be installed in ComfyUI/custom_nodes    ```
 
-### Installation
-
-1.  **Clone the Repository**:
-    ```bash
-    git clone https://github.com/your-username/CharacterGenerationFromBook.git
-    cd CharacterGenerationFromBook
-    ```
-
-2.  **Backend Setup**:
-    ```bash
-    cd backend
-    pip install -r requirements.txt
-    ```
-
-3.  **Frontend Setup**:
-    ```bash
-    cd ../frontend
-    npm install
-    ```
 
 ### Running the App
 

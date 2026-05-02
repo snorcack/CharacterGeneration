@@ -19,7 +19,8 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 
-load_dotenv()
+OLLAMA_MODEL = "Gemma4E4B"
+OLLAMA_HOST = "http://localhost:11434"
 
 LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://localhost:11434/v1")
 LLM_API_KEY  = os.getenv("LLM_API_KEY",  "ollama")
