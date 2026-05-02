@@ -1,5 +1,7 @@
 fastapi
 uvicorn[standard]
+openai
+python-dotenv
 ollama
 python-multipart
 ebooklib
