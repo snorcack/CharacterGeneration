@@ -382,9 +382,6 @@ async def get_agent_status():
                 last_snapshot = dict(snapshot)
 
             if state["agent_status"] in ("done", "error"):
-                # Reset after a short delay so the next run starts fresh
-                await asyncio.sleep(2)
-                state["agent_status"] = "idle"
                 break
 
             await asyncio.sleep(0.5)
@@ -671,13 +668,19 @@ def batch_analyze_task(
         save_library(library)
         
         state["agent_status"] = "done"
-        state["agent_message"] = f"Successfully analyzed {len(character_names)} characters with casting and prompts."
+        if not state.get("agent_abort"):
+            state["agent_message"] = f"Successfully analyzed {len(character_names)} characters with casting and prompts."
         
     except Exception as exc:
         import traceback
         traceback.print_exc()
         state["agent_status"] = "error"
         state["agent_message"] = f"Agent Error: {exc}"
+        
+    import time
+    time.sleep(5)
+    if state["agent_status"] in ("done", "error"):
+        state["agent_status"] = "idle"
 
 
 @app.post("/api/batch-analyze-characters")
@@ -688,6 +691,11 @@ async def batch_analyze_characters(req: BatchAnalyzeRequest):
     if state["agent_status"] == "running":
         raise HTTPException(status_code=409, detail="Agent is already busy.")
         
+    state["agent_status"] = "running"
+    state["agent_total"] = len(req.character_names)
+    state["agent_progress"] = 0
+    state["agent_message"] = "Initializing character analysis..."
+    
     t = threading.Thread(
         target=batch_analyze_task,
         args=(
@@ -918,12 +926,18 @@ def batch_image_gen_task(req_dict: dict):
                 
         save_library(library)
         state["agent_status"] = "done"
-        state["agent_message"] = f"Finished generating {total_idx} images."
+        if not state.get("agent_abort"):
+            state["agent_message"] = f"Finished generating {total_idx} images."
     except Exception as exc:
         state["agent_status"] = "error"
         state["agent_message"] = f"Image Agent Error: {exc}"
     finally:
         loop.close()
+        
+    import time
+    time.sleep(5)
+    if state["agent_status"] in ("done", "error"):
+        state["agent_status"] = "idle"
 
 
 @app.post("/api/batch-generate-images")
@@ -931,6 +945,11 @@ async def batch_generate_images(req: BatchImageRequest):
     if state["agent_status"] == "running":
         raise HTTPException(status_code=409, detail="Agent is already busy.")
         
+    state["agent_status"] = "running"
+    state["agent_total"] = len(req.character_names) * req.images_per_character
+    state["agent_progress"] = 0
+    state["agent_message"] = "Initializing image generation..."
+    
     req_dict = req.dict()
     t = threading.Thread(target=batch_image_gen_task, args=(req_dict,), daemon=True)
     t.start()
@@ -1012,18 +1031,30 @@ def batch_location_image_task(req_dict: dict):
 
         save_library(library)
         state["agent_status"]  = "done"
-        state["agent_message"] = f"Finished generating {total_idx} location images."
+        if not state.get("agent_abort"):
+            state["agent_message"] = f"Finished generating {total_idx} location images."
     except Exception as exc:
         state["agent_status"]  = "error"
         state["agent_message"] = f"Location Agent Error: {exc}"
     finally:
         loop.close()
+        
+    import time
+    time.sleep(5)
+    if state["agent_status"] in ("done", "error"):
+        state["agent_status"] = "idle"
 
 
 @app.post("/api/batch-generate-location-images")
 async def batch_generate_location_images(req: BatchLocationImageRequest):
     if state["agent_status"] == "running":
         raise HTTPException(status_code=409, detail="Agent is already busy.")
+        
+    state["agent_status"] = "running"
+    state["agent_total"] = len(req.location_names) * req.images_per_location
+    state["agent_progress"] = 0
+    state["agent_message"] = "Initializing location image generation..."
+    
     req_dict = req.dict()
     t = threading.Thread(target=batch_location_image_task, args=(req_dict,), daemon=True)
     t.start()
