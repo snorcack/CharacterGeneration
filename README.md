@@ -38,6 +38,8 @@ A powerful, AI-driven pipeline for generating cinematic character portraits dire
 
 ### Installation
 
+Alternate installation : You can also use the install.bat files included in the repository. It will pull the project and install all dependencies.
+
 1.  **Clone the Repository**:
     ```bash
     git clone https://github.com/your-username/CharacterGenerationFromBook.git
