@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
+import { Loader } from './Loader'
 
 /**
  * ComfyDebugger — A dedicated panel for testing ComfyUI connectivity,
@@ -124,18 +125,91 @@ export default function ComfyDebugger() {
     }
   }
 
+  const [sysResults, setSysResults] = useState(null)
+  const [sysLoading, setSysLoading] = useState(false)
+
+  const handleSystemTest = async () => {
+    setSysLoading(true)
+    log('Running system-wide diagnostic tests...')
+    try {
+      const res = await fetch('/api/debug/system-test')
+      const data = await res.json()
+      setSysResults(data)
+      log('System tests complete.')
+    } catch (err) {
+      log(`System Test Error: ${err.message}`)
+      setError(err.message)
+    } finally {
+      setSysLoading(false)
+    }
+  }
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'ok': return 'var(--success)';
+      case 'warning': return 'var(--gold)';
+      case 'error': return 'var(--error)';
+      default: return 'var(--text-faint)';
+    }
+  }
+
   return (
     <div className="comfy-debugger animate-in">
       <div className="glass-card">
         <div className="section-header">
           <div className="section-number">DEBUG</div>
           <div>
-            <h2>ComfyUI Diagnostic Tool</h2>
-            <p className="section-subtitle">Test connectivity, workflow injection, and generation logic</p>
+            <h2>System & ComfyUI Diagnostics</h2>
+            <p className="section-subtitle">Verify backend integrity, database health, and render pipelines</p>
           </div>
           <div className="comfy-logo">🛠️</div>
         </div>
 
+        {/* Section A: System Integrity */}
+        <div style={{ marginBottom: '32px', paddingBottom: '24px', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 style={{ fontSize: '0.9rem', textTransform: 'uppercase', color: 'var(--purple)' }}>System Integrity Tests</h3>
+            <button 
+              className="btn btn-secondary" 
+              style={{ fontSize: '0.8rem', padding: '6px 12px' }}
+              onClick={handleSystemTest}
+              disabled={sysLoading}
+            >
+              {sysLoading ? <><Loader small /> Running...</> : '🔍 Run All Tests'}
+            </button>
+          </div>
+
+          <div className="debug-grid" style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+            gap: '12px' 
+          }}>
+            {['library', 'vectorstore', 'llm', 'character_gen'].map(key => {
+              const res = sysResults?.[key] || { status: 'idle', message: 'Not tested yet' }
+              return (
+                <div key={key} style={{ 
+                  background: 'rgba(0,0,0,0.2)', 
+                  padding: '12px', 
+                  borderRadius: '10px', 
+                  border: `1px solid ${res.status === 'idle' ? 'var(--border)' : getStatusColor(res.status)}`
+                }}>
+                  <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: '4px' }}>{key.replace('_', ' ')}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
+                    <span style={{ color: getStatusColor(res.status) }}>
+                      {res.status === 'ok' ? '●' : res.status === 'warning' ? '▲' : res.status === 'error' ? '✖' : '○'}
+                    </span>
+                    <span style={{ fontWeight: '600' }}>{res.status.toUpperCase()}</span>
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>{res.message}</div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Section B: ComfyUI Diagnostics */}
+        <h3 style={{ fontSize: '0.9rem', textTransform: 'uppercase', color: 'var(--purple)', marginBottom: '16px' }}>ComfyUI Render Pipeline</h3>
+        
         <div className="form-group">
           <label>ComfyUI Server URL</label>
           <div className="comfy-url-row">

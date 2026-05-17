@@ -9,6 +9,7 @@ inject_prompt_into_workflow(workflow, prompt_text, node_id=None) -> dict
 queue_prompt(comfy_url, workflow) -> str
 poll_until_done(comfy_url, prompt_id, timeout=180) -> dict
 get_output_image_bytes(comfy_url, history_entry) -> bytes
+randomize_seeds(workflow) -> None
 """
 
 import json
@@ -81,7 +82,28 @@ def inject_prompt_into_workflow(
         raise ValueError(f"Node '{target_id}' not found in workflow.")
 
     wf[target_id]["inputs"]["text"] = prompt_text
+    
+    # Also randomize seeds to ensure variety in batch generation
+    randomize_seeds(wf)
+    
     return wf, target_id
+
+
+def randomize_seeds(workflow: dict) -> None:
+    """
+    Find any node inputs named 'seed' or 'noise_seed' that are 
+    currently set to a numeric value, and randomize them.
+    """
+    import random
+    for node_id, node in workflow.items():
+        if not isinstance(node, dict):
+            continue
+        inputs = node.get("inputs", {})
+        for key in inputs:
+            if key in ("seed", "noise_seed"):
+                # Only randomize if it's a number (not a link/list)
+                if isinstance(inputs[key], (int, float)):
+                    inputs[key] = random.randint(0, 0xffffffffffffffff)
 
 
 # ---------------------------------------------------------------------------

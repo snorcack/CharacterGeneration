@@ -1,0 +1,109 @@
+# =============================================================================
+# CharacterGeneration .gitignore
+# Python (FastAPI) + React (Vite) + ChromaDB + SQLite
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Environment & Secrets
+# -----------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# -----------------------------------------------------------------------------
+# Python
+# -----------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+ENV/
+env.bak/
+venv.bak/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+.eggs/
+wheels/
+
+# Testing & coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Type checker caches
+.mypy_cache/
+.pytype/
+.ruff_cache/
+
+# -----------------------------------------------------------------------------
+# Databases
+# -----------------------------------------------------------------------------
+# SQLite databases (all .sqlite3 and .db files)
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+
+# ChromaDB persistent storage
+CharacterGenerate/backend/chroma_db*/
+chroma_db*/
+
+# -----------------------------------------------------------------------------
+# Node / Frontend (Vite + React)
+# -----------------------------------------------------------------------------
+node_modules/
+dist/
+.vite/
+*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# -----------------------------------------------------------------------------
+# OS & Editor artifacts
+# -----------------------------------------------------------------------------
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# VSCode
+.vscode/
+!.vscode/extensions.json
+
+# JetBrains / PyCharm
+.idea/
+*.iml
+*.iws
+
+# -----------------------------------------------------------------------------
+# Misc
+# -----------------------------------------------------------------------------
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo

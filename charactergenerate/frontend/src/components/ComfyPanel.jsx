@@ -1,5 +1,6 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { Loader } from './Loader'
+import Lightbox from './Lightbox'
 
 const STATUS_ICONS = {
   idle: '🎨',
@@ -26,7 +27,8 @@ const STATUS_COLORS = {
  * Connect to a local ComfyUI instance, upload an API-format workflow JSON,
  * inject the generated prompt, and display the resulting image.
  */
-export default function ComfyPanel({ prompt }) {
+const ComfyPanel = forwardRef(({ prompt, characterName = '', bookName = '', onImageSaved }, ref) => {
+  const [imageProvider, setImageProvider] = useState('comfyui') // 'comfyui' | 'gemini'
   const [comfyUrl, setComfyUrl] = useState('http://localhost:8188')
   const [nodeId, setNodeId] = useState('')
   const [workflowFile, setWorkflowFile] = useState(null)       // File object
@@ -40,6 +42,7 @@ export default function ComfyPanel({ prompt }) {
   const [promptId, setPromptId] = useState(null)
   const [imageUrl, setImageUrl] = useState(null)
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
 
   const fileInputRef = useRef(null)
   const abortRef = useRef(null)
@@ -93,27 +96,37 @@ export default function ComfyPanel({ prompt }) {
 
   /* ── Generate image ───────────────────────────────────────────── */
   const handleGenerate = useCallback(async () => {
-    if (!workflowJson || !prompt) return
+    if (!prompt) return
+    if (imageProvider === 'comfyui' && !workflowJson) return
 
     setGenStatus('injecting')
     setGenMessage('Preparing…')
     setPromptId(null)
     setImageUrl(null)
 
-    const body = JSON.stringify({
-      comfy_url: comfyUrl,
-      workflow_json: workflowJson,
-      prompt_text: prompt,
-      node_id: nodeId.trim() || null,
-    })
+    let url, body;
+    if (imageProvider === 'comfyui') {
+      url = '/api/comfyui/generate'
+      body = JSON.stringify({
+        comfy_url: comfyUrl,
+        workflow_json: workflowJson,
+        prompt_text: prompt,
+        node_id: nodeId.trim() || null,
+      })
+    } else {
+      url = '/api/gemini/generate-image'
+      body = JSON.stringify({
+        prompt_text: prompt,
+      })
+    }
 
-    const es = new EventSource('/api/comfyui/generate?' + new URLSearchParams({ _body: body }))
+    const es = new EventSource(url + '?' + new URLSearchParams({ _body: body }))
     // EventSource doesn't support POST; use fetch with streaming instead
     es.close()
 
     let reader
     try {
-      const response = await fetch('/api/comfyui/generate', {
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body,
@@ -145,7 +158,19 @@ export default function ComfyPanel({ prompt }) {
             setGenMessage(evt.message || '')
             if (evt.prompt_id) setPromptId(evt.prompt_id)
             if (evt.status === 'done' && evt.prompt_id) {
-              setImageUrl(`/api/comfyui/image/${evt.prompt_id}?ts=${Date.now()}`)
+              setImageUrl(`/api/image/${evt.prompt_id}?ts=${Date.now()}`)
+              // Link the generated image to the character in the library
+              if (characterName) {
+                fetch('/api/character-descriptions/set-image', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    book_name: bookName,
+                    character_name: characterName,
+                    prompt_id: evt.prompt_id,
+                  }),
+                }).then(() => onImageSaved?.()).catch(() => {})
+              }
             }
           } catch { /* malformed line */ }
         }
@@ -154,9 +179,17 @@ export default function ComfyPanel({ prompt }) {
       setGenStatus('error')
       setGenMessage(err.message || 'Streaming error')
     }
-  }, [comfyUrl, workflowJson, prompt, nodeId])
+  }, [comfyUrl, workflowJson, prompt, nodeId, imageProvider])
 
-  const canGenerate = !!workflowJson && !!prompt && genStatus !== 'injecting' &&
+  useImperativeHandle(ref, () => ({
+    triggerGeneration: () => {
+      if (prompt && (imageProvider === 'gemini' || workflowJson)) {
+        handleGenerate();
+      }
+    }
+  }), [handleGenerate, prompt, imageProvider, workflowJson])
+
+  const canGenerate = prompt && (imageProvider === 'gemini' || workflowJson) && genStatus !== 'injecting' &&
     genStatus !== 'queued' && genStatus !== 'polling' && genStatus !== 'fetching'
 
   const isGenerating = ['injecting', 'queued', 'polling', 'fetching'].includes(genStatus)
@@ -164,18 +197,32 @@ export default function ComfyPanel({ prompt }) {
   /* ── Render ───────────────────────────────────────────────────── */
   return (
     <section className="glass-card comfy-panel animate-in">
+      <Lightbox src={lightboxOpen ? imageUrl : null} onClose={() => setLightboxOpen(false)} />
       {/* Header */}
       <div className="section-header">
         <span className="section-number">05</span>
-        <div>
-          <h2 style={{fontSize: '1.2rem'}}>ComfyUI Gen</h2>
+        <div style={{flex: 1}}>
+          <h2 style={{fontSize: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+            Image Generation
+            <select 
+              className="select" 
+              style={{padding: '4px 8px', fontSize: '0.8rem', width: 'auto', fontWeight: 'normal'}}
+              value={imageProvider}
+              onChange={e => setImageProvider(e.target.value)}
+            >
+              <option value="comfyui">ComfyUI</option>
+              <option value="gemini">Gemini</option>
+            </select>
+          </h2>
           <p className="section-subtitle">
-            Local render pipeline
+            {imageProvider === 'comfyui' ? 'Local render pipeline' : 'Cloud render pipeline'}
           </p>
         </div>
       </div>
 
-      {/* URL + Test row */}
+      {imageProvider === 'comfyui' && (
+        <>
+          {/* URL + Test row */}
       <div className="comfy-url-row">
         <div className="form-group flex-1" style={{ marginBottom: 0 }}>
           <label htmlFor="comfy-url-input">ComfyUI Server URL</label>
@@ -265,6 +312,8 @@ export default function ComfyPanel({ prompt }) {
           </div>
         </div>
       )}
+      </>
+      )}
 
       {/* Generate button */}
       <button
@@ -278,7 +327,7 @@ export default function ComfyPanel({ prompt }) {
         ) : genStatus === 'done' ? (
           '🔄 Regenerate Image'
         ) : (
-          '🎨 Generate Image with ComfyUI'
+          `🎨 Generate Image with ${imageProvider === 'comfyui' ? 'ComfyUI' : 'Gemini'}`
         )}
       </button>
 
@@ -319,10 +368,14 @@ export default function ComfyPanel({ prompt }) {
             src={imageUrl}
             alt="AI generated character portrait"
             className="comfy-image"
+            style={{ cursor: 'zoom-in', transition: 'transform 0.2s' }}
+            onClick={() => setLightboxOpen(true)}
             onLoad={e => e.target.classList.add('comfy-image-reveal')}
           />
         </div>
       )}
     </section>
   )
-}
+})
+
+export default ComfyPanel

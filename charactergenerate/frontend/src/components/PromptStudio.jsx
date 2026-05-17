@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { Loader } from './Loader'
+import { renderPromptBadge } from '../utils/badges'
+import PromptEditor from './PromptEditor'
 
 /**
  * PromptStudio — Section 04
@@ -7,8 +9,11 @@ import { Loader } from './Loader'
  */
 export default function PromptStudio({ 
   prompt, 
+  setPrompt,
+  savedPrompts = [],
   loading, 
   onGenerate, 
+  onSave,
   canGenerate,
   gender,
   setGender,
@@ -34,7 +39,7 @@ export default function PromptStudio({
         <div>
           <h2>Prompt Studio</h2>
           <p className="section-subtitle">
-            Generate your Z-Image-Turbo / Stable Diffusion character portrait prompt
+            Refine your image prompt and save your favorite versions
           </p>
         </div>
       </div>
@@ -68,20 +73,49 @@ export default function PromptStudio({
         </div>
       </div>
 
-      <button
-        id="generate-prompt-btn"
-        className="btn btn-primary generate-btn"
-        onClick={onGenerate}
-        disabled={!canGenerate || loading}
-      >
-        {loading ? (
-          <><Loader small /> Generating…</>
-        ) : prompt ? (
-          '🔄 Regenerate Prompt'
-        ) : (
-          '✨ Generate Prompt'
+      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+        <button
+          id="generate-prompt-btn"
+          className="btn btn-primary generate-btn"
+          style={{ flex: 1, minWidth: '140px' }}
+          onClick={() => onGenerate('image')}
+          disabled={!canGenerate || loading}
+        >
+          {loading ? (
+            <><Loader small /> Generating…</>
+          ) : prompt ? (
+            '🔄 Regen Image'
+          ) : (
+            '✨ Image Prompt'
+          )}
+        </button>
+
+        <button
+          className="btn btn-primary generate-btn"
+          style={{ flex: 1, minWidth: '140px' }}
+          onClick={() => onGenerate('video')}
+          disabled={!canGenerate || loading}
+        >
+          {loading ? (
+            <><Loader small /> Generating…</>
+          ) : prompt ? (
+            '🔄 Regen Video'
+          ) : (
+            '🎥 Video Prompt'
+          )}
+        </button>
+
+        {prompt && !loading && (
+          <button
+            className="btn btn-secondary"
+            style={{ padding: '0 20px', borderColor: 'var(--success)', color: 'var(--success)' }}
+            onClick={onSave}
+            title="Save this prompt to character library"
+          >
+            💾 Save
+          </button>
         )}
-      </button>
+      </div>
 
       {loading && (
         <div className="loading-row" style={{ marginTop: 16 }}>
@@ -91,9 +125,9 @@ export default function PromptStudio({
       )}
 
       {prompt && !loading && (
-        <div className="prompt-output">
+        <div className="prompt-output" style={{ marginTop: '24px' }}>
           <div className="prompt-output-header">
-            <span>Generated Prompt</span>
+            <span>Editable Prompt</span>
             <button
               id="copy-prompt-btn"
               className={`btn-copy ${copied ? 'copied' : ''}`}
@@ -102,7 +136,51 @@ export default function PromptStudio({
               {copied ? '✓ Copied!' : '📋 Copy'}
             </button>
           </div>
-          <div className="prompt-text">{prompt}</div>
+          <div style={{ padding: '4px' }}>
+            <PromptEditor 
+              value={prompt}
+              onChange={setPrompt}
+              style={{ height: '200px' }}
+            />
+          </div>
+        </div>
+      )}
+
+      {savedPrompts.length > 0 && (
+        <div className="saved-prompts-section" style={{ marginTop: '24px' }}>
+          <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '8px', display: 'block' }}>
+            SAVED PROMPTS ({savedPrompts.length})
+          </label>
+          <div className="saved-prompts-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {savedPrompts.map((p, idx) => (
+              <div 
+                key={idx} 
+                className={`saved-prompt-item ${p === prompt ? 'active' : ''}`}
+                onClick={() => setPrompt(p)}
+                style={{
+                  padding: '10px 12px',
+                  background: 'rgba(255,255,255,0.03)',
+                  border: `1px solid ${p === prompt ? 'var(--purple)' : 'var(--border)'}`,
+                  borderRadius: '8px',
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  color: p === prompt ? 'var(--text)' : 'var(--text-muted)',
+                  display: '-webkit-box',
+                  WebkitLineClamp: '2',
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  transition: 'all 0.2s',
+                  lineHeight: '1.4'
+                }}
+              >
+                <div style={{display: 'flex', justifyContent: 'flex-end', marginBottom: '4px'}}>
+                  {renderPromptBadge(p)}
+                </div>
+                {p}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </section>

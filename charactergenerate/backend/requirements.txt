@@ -6,3 +6,9 @@ langchain-text-splitters
 langchain-chroma
 langchain-huggingface
 sentence-transformers
+python-dotenv
+openai
+anthropic
+google-genai
+ebooklib
+beautifulsoup4
