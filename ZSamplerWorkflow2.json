@@ -1,0 +1,199 @@
+{
+  "3": {
+    "inputs": {
+      "seed": 291123208651026,
+      "steps": 8,
+      "cfg": 1,
+      "sampler_name": "dpmpp_sde",
+      "scheduler": "simple",
+      "denoise": 1
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": "cute anime style girl with massive fluffy fennec ears and a big fluffy tail blonde messy long hair blue eyes wearing a maid outfit with a long black gold leaf pattern dress and a white apron, it is a postcard held by a hand in front of a beautiful realistic city at sunset and there is cursive writing that says \"ZImage, Now in ComfyUI\"",
+      "clip": [
+        "41",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "7": {
+    "inputs": {
+      "text": "blurry ugly bad"
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Negative Prompt)"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "43",
+        0
+      ],
+      "vae": [
+        "17",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "9": {
+    "inputs": {
+      "filename_prefix": "04-19-11-21-23",
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "13": {
+    "inputs": {
+      "width": 720,
+      "height": 1280,
+      "batch_size": 1
+    },
+    "class_type": "EmptySD3LatentImage",
+    "_meta": {
+      "title": "EmptySD3LatentImage"
+    }
+  },
+  "16": {
+    "inputs": {
+      "unet_name": "z-image-turbo_fp8_scaled_e4m3fn_KJ.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Load Diffusion Model"
+    }
+  },
+  "17": {
+    "inputs": {
+      "vae_name": "ae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "40": {
+    "inputs": {
+      "lora_name": "Z_Image_NSFW_Unlocked_V1.safetensors",
+      "strength_model": 0.5,
+      "strength_clip": 0.5,
+      "model": [
+        "16",
+        0
+      ],
+      "clip": [
+        "51",
+        0
+      ]
+    },
+    "class_type": "LoraLoader",
+    "_meta": {
+      "title": "Load LoRA (Model and CLIP)"
+    }
+  },
+  "41": {
+    "inputs": {
+      "lora_name": "adazwsr_v1_110.safetensors",
+      "strength_model": 1.01,
+      "strength_clip": 1,
+      "model": [
+        "40",
+        0
+      ],
+      "clip": [
+        "40",
+        1
+      ]
+    },
+    "class_type": "LoraLoader",
+    "_meta": {
+      "title": "Load LoRA (Model and CLIP)"
+    }
+  },
+  "43": {
+    "inputs": {
+      "seed": 277759704688169,
+      "steps": 9,
+      "denoise": 1,
+      "divider": null,
+      "initial_noise_calibration": 0,
+      "noise_bias_estimation": "experimental",
+      "noise_bias_sample_size": "image_size",
+      "noise_bias_scale": 0.12,
+      "noise_overdose": 0.33,
+      "model": [
+        "41",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "latent_input": [
+        "44",
+        0
+      ]
+    },
+    "class_type": "ZSamplerTurboAdvanced //ZImagePowerNodes",
+    "_meta": {
+      "title": "⚡| Z-Sampler Turbo ^1 (Advanced)"
+    }
+  },
+  "44": {
+    "inputs": {
+      "landscape": false,
+      "ratio": "16:9  (widescreen)",
+      "size": "medium (recommended)",
+      "batch_size": 1
+    },
+    "class_type": "EmptyZImageLatentImage //ZImagePowerNodes",
+    "_meta": {
+      "title": "⚡| Empty Z-Image Latent Image"
+    }
+  },
+  "45": {
+    "inputs": {
+      "style": "\"Selfie\"",
+      "gallery": null,
+      "spacer": null,
+      "text": ""
+    },
+    "class_type": "StylePromptEncoder2 //ZImagePowerNodes",
+    "_meta": {
+      "title": "⚡| Style & Prompt Encoder"
+    }
+  },
+  "51": {
+    "inputs": {
+      "clip_name": "Qwen3-4B.i1-Q5_K_S.gguf",
+      "type": "stable_diffusion",
+      "device": "default"
+    },
+    "class_type": "ClipLoaderGGUF",
+    "_meta": {
+      "title": "GGUF CLIP Loader"
+    }
+  }
+}
